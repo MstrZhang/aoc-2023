@@ -10,7 +10,7 @@ def read_file(file_name):
 
 
 def parse_card(card):
-    return [list(filter(None, x.split(' '))) for x in re.sub(r'Card \d+: ', '', card).split(' | ')]
+    return [x.split() for x in re.sub(r'Card \d+: ', '', card).split(' | ')]
 
 
 def calculate_score(num_matches):
