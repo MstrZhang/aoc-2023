@@ -15,8 +15,10 @@ def parse_maps(file_name):
     almanac = {
         'seeds': [],
         'seed-to-soil': [],
+        'soil-to-fertilizer': [],
         'fertilizer-to-water': [],
         'water-to-light': [],
+        'light-to-temperature': [],
         'temperature-to-humidity': [],
         'humidity-to-location': []
     }
@@ -29,11 +31,17 @@ def parse_maps(file_name):
         if 'seed-to-soil map:' in line:
             current_map = 'seed-to-soil'
             continue
+        if 'soil-to-fertilizer map:' in line:
+            current_map = 'soil-to-fertilizer'
+            continue
         if 'fertilizer-to-water map:' in line:
             current_map = 'fertilizer-to-water'
             continue
         if 'water-to-light map:' in line:
             current_map = 'water-to-light'
+            continue
+        if 'light-to-temperature map:' in line:
+            current_map = 'light-to-temperature'
             continue
         if 'temperature-to-humidity map:' in line:
             current_map = 'temperature-to-humidity'
@@ -60,22 +68,53 @@ def traverse_map(source, conversion_map):
     ranges = []
     for mapping in conversion_map:
         destination_start, source_start, range_length = mapping[0], mapping[1], mapping[2]
+
         # (start, end, offset)
+        # as long as we always perform the same operation to offset (in this case subtraction)
+        # it will map to the same value every time
         ranges.append((source_start, source_start + range_length,
                       source_start - destination_start))
 
     for range in ranges:
-        if source < range[1] and source > range[0]:
-            converted_value = source - range[2]
-        else:
-            converted_value = source
+        if source <= range[1] and source >= range[0]:
+            return source - range[2]
 
-    return converted_value
+    return source
+
+
+def seed_to_location(seed, almanac):
+    soil = traverse_map(seed, almanac['seed-to-soil'])
+    fertilizer = traverse_map(soil, almanac['soil-to-fertilizer'])
+    water = traverse_map(fertilizer, almanac['fertilizer-to-water'])
+    light = traverse_map(water, almanac['water-to-light'])
+    temperature = traverse_map(light, almanac['light-to-temperature'])
+    humidity = traverse_map(
+        temperature, almanac['temperature-to-humidity'])
+    location = traverse_map(humidity, almanac['humidity-to-location'])
+
+    # print(f'{seed} {soil} {fertilizer} {water} {light} {temperature} {humidity} {location}')
+    return location
+
+
+def extract_ranges(seeds):
+    pairs = zip(seeds[::2], seeds[1::2])
+    ranges = [range(x[0], x[0] + x[1] - 1) for x in pairs]
+    return ranges
 
 
 if __name__ == '__main__':
     almanac = parse_maps('sample.txt')
 
-    # traverse_map(almanac['seeds'], almanac['seed-to-soil'])
-    test = traverse_map(13, almanac['seed-to-soil'])
-    print(test)
+    # part 1
+    locations = []
+    for seed in almanac['seeds']:
+        locations.append(seed_to_location(seed, almanac))
+    print(min(locations))
+
+    # part 2
+    seed_ranges = extract_ranges(almanac['seeds'])
+    locations = []
+    for seed_range in seed_ranges:
+        for seed in seed_range:
+            locations.append(seed_to_location(seed, almanac))
+    print(min(locations))
